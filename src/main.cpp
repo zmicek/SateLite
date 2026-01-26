@@ -505,18 +505,6 @@ State currentState = STATE_AIR_QUALITY;
 struct tm timeinfo;
 
 void loop() {
-
-  // String rtc_time = rtc.getTime("%d-%m-%Y %a %H:%M");
-  // Serial.println(rtc_time);
-
-  // delay(1000);
-  //
-  // Add two LEDs to blink periodically. Maybe use second core for this. 
-  //
-  // Add additional state which shows only clock and date
-  // Deep sleep mode between updates
-  //
-
   
   if (getLocalTime(&timeinfo) == false || timeinfo.tm_year < 71) {
     // RTC clock is not set
