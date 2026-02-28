@@ -44,7 +44,6 @@ int blinkState = 0;      // 0 = eyes open, 1 = eyes closed (blinking)
 int blinkDelay = 4000;   // Blink delay (4 seconds)
 unsigned long lastBlinkTime = 0;
 unsigned long moveTime = 0;
-bool blinkingEnabled = false;
 
 
 //-------------------------------------------------------------
@@ -75,30 +74,8 @@ ESP32Time rtc(3600); // Initialize RTC for gmt +1
 // Button definition
 int buttonState = 0;
 volatile bool buttonPressed = false;
-volatile bool ledState = false;
-volatile unsigned long lastInterruptTime = 0;
-const unsigned long debounceDelay = 200; // ms
+const unsigned long debounceDelay = 300; // ms
 
-// Interrupt Service Routine (ISR)
-void IRAM_ATTR handleButtonPress() {
-  unsigned long currentTime = millis();
-
-  // Simple debounce
-  if (currentTime - lastInterruptTime > debounceDelay) {
-    buttonPressed = !buttonPressed;
-    lastInterruptTime = currentTime;
-  }
-}
-
-
-
-// // Timer definition
-// volatile bool timerExpired = false;
-// hw_timer_t * timer = NULL;
-
-// void IRAM_ATTR onTimer() {
-//   timerExpired = true; // set flag in ISR (keep ISR short)
-// }
 
 // Init functions
 void serialInit() {
@@ -208,20 +185,20 @@ void setTime() {
 }
 
 void setup() {
-  pinMode(BUTTON_PIN, INPUT); // Set the pin as an input
-  attachInterrupt(digitalPinToInterrupt(BUTTON_PIN), handleButtonPress, FALLING);
-  // Light sleep configuration
-  esp_sleep_enable_timer_wakeup(60ULL * 1000000ULL);      // 60 seconds
-  esp_sleep_enable_gpio_wakeup();
-  gpio_wakeup_enable(BUTTON_PIN, GPIO_INTR_LOW_LEVEL);
-
+  
   disableBluetoothCompletely();
   serialInit();
   
   displayInit();
   sensorsInit();
 
-  // // Timer0, prescaler 80 -> 1 tick = 1 microsecond (80 MHz / 80 = 1 MHz)
+  // Light sleep configuration
+  pinMode(BUTTON_PIN, INPUT_PULLDOWN); // Set the pin as an input
+  gpio_wakeup_enable(BUTTON_PIN, GPIO_INTR_HIGH_LEVEL);
+  esp_sleep_enable_gpio_wakeup();
+  esp_sleep_enable_timer_wakeup(60ULL * 1000000ULL);      // 60 seconds 
+
+  // Timer0, prescaler 80 -> 1 tick = 1 microsecond (80 MHz / 80 = 1 MHz)
   // timer = timerBegin(0, 80, true);               // timer index 0, count up
   // timerAttachInterrupt(timer, &onTimer, true);   // attach ISR
   // timerAlarmWrite(timer, 1000000 * 60, true);    // 1_000_000 us = 1 second, autoreload = true
@@ -527,6 +504,10 @@ void loop() {
     }
   }
 
+  int buttonPressed = digitalRead(BUTTON_PIN);
+  if (buttonPressed == HIGH)
+    delay(debounceDelay);
+
   // FSM implementation  
   switch (currentState) {
     case STATE_AIR_QUALITY:
@@ -552,7 +533,7 @@ void loop() {
     case STATE_EYES_ANIMATION:
       eyesAnimation();
 
-      if (buttonPressed)
+      if (digitalRead(BUTTON_PIN))
         currentState = STATE_AIR_QUALITY;
       
       // NO sleep call here - keep system awake during animation
