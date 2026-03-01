@@ -504,37 +504,46 @@ void loop() {
     }
   }
 
-  int buttonPressed = digitalRead(BUTTON_PIN);
-  if (buttonPressed == HIGH)
-    delay(debounceDelay);
-
   // FSM implementation  
   switch (currentState) {
     case STATE_AIR_QUALITY:
-      readSensorData();
-      airQuality();
-
-      if (buttonPressed)
+      buttonPressed = digitalRead(BUTTON_PIN);
+      if (buttonPressed == HIGH){
+        delay(debounceDelay);
         currentState = STATE_AMBIENT_CONDITIONS;
-      
-      esp_light_sleep_start();
+      }
+      else{
+        readSensorData();
+        airQuality();
+        esp_light_sleep_start();
+      }
+
       break;
 
     case STATE_AMBIENT_CONDITIONS:
-      readSensorData();
-      ambientConditions();
-      
-      if (buttonPressed)
+
+      buttonPressed = digitalRead(BUTTON_PIN);
+      if (buttonPressed == HIGH){
+        delay(debounceDelay);
         currentState = STATE_EYES_ANIMATION;
+      }
+      else{
+        readSensorData();
+        ambientConditions();
+        esp_light_sleep_start();
+      }
       
-      esp_light_sleep_start();
       break;
 
     case STATE_EYES_ANIMATION:
-      eyesAnimation();
-
-      if (digitalRead(BUTTON_PIN))
+      buttonPressed = digitalRead(BUTTON_PIN);
+      if (buttonPressed == HIGH){
+        delay(debounceDelay);
         currentState = STATE_AIR_QUALITY;
+      }
+      else{
+        eyesAnimation();
+      }
       
       // NO sleep call here - keep system awake during animation
       break;
